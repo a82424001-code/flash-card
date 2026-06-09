@@ -88,6 +88,7 @@
     /* ── Pages ── */
     .page { display: none; padding: 16px 16px 88px; }
     .page.active { display: block; }
+    #page-review { padding-bottom: 8px; }
 
     /* ── Stats bar ── */
     .stats-row {
@@ -112,6 +113,8 @@
       flex-direction: column;
       align-items: center;
       padding-top: 8px;
+      height: calc(100dvh - 56px - 60px - 130px);
+      min-height: 320px;
     }
     .deck-badge {
       font-size: 12px;
@@ -119,17 +122,21 @@
       color: var(--primary);
       padding: 4px 14px;
       border-radius: 99px;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       font-weight: 500;
+      flex-shrink: 0;
     }
     .flip-card-wrap {
       width: 100%;
       perspective: 1000px;
-      margin-bottom: 20px;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: 10px;
     }
     .flip-card {
       width: 100%;
-      min-height: 220px;
+      height: 100%;
+      min-height: 160px;
       position: relative;
       transform-style: preserve-3d;
       transition: transform 0.5s cubic-bezier(.4,0,.2,1);
@@ -139,7 +146,8 @@
     .card-face {
       position: absolute;
       width: 100%;
-      min-height: 220px;
+      height: 100%;
+      min-height: 160px;
       backface-visibility: hidden;
       background: white;
       border-radius: var(--radius);
@@ -147,22 +155,33 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 28px 24px;
+      justify-content: flex-start;
+      padding: 20px 20px;
       text-align: center;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .card-face.back { transform: rotateY(180deg); background: var(--primary-light); }
-    .card-label { font-size: 11px; color: var(--gray-400); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
-    .card-text { font-size: 18px; font-weight: 600; line-height: 1.6; color: var(--gray-800); white-space: pre-wrap; }
-    .card-face.back .card-text { font-size: 15px; font-weight: 400; color: var(--gray-800); }
-    .tap-hint { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
+    .card-label { font-size: 11px; color: var(--gray-400); margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
+    .card-text { font-size: 17px; font-weight: 600; line-height: 1.7; color: var(--gray-800); white-space: pre-wrap; word-break: break-word; }
+    .card-face.back .card-text { font-size: 14px; font-weight: 400; color: var(--gray-800); }
+    .tap-hint { font-size: 12px; color: var(--gray-400); margin-top: auto; padding-top: 10px; flex-shrink: 0; }
 
+    /* 評分列固定在底部 */
+    .rating-fixed {
+      position: fixed;
+      bottom: 60px;
+      left: 0; right: 0;
+      background: var(--gray-50);
+      padding: 10px 16px 10px;
+      border-top: 1px solid var(--gray-200);
+      z-index: 50;
+    }
     .rating-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
       width: 100%;
-      margin-top: 4px;
     }
     .rating-btn {
       border: none;
@@ -498,20 +517,22 @@ function renderReview() {
           </div>
         </div>
       </div>
-      <div class="rating-row" id="rating-row" style="display:none">
+      <p style="font-size:12px;color:#9CA3AF;flex-shrink:0;">剩餘 ${reviewQueue.length} 張 · 今日已完成 ${doneToday} 張</p>
+    </div>
+    <div class="rating-fixed" id="rating-fixed" style="display:none">
+      <div class="rating-row">
         <button class="rating-btn btn-again" onclick="rate(0)">重來<span class="days">${nextIntervals[0]}天後</span></button>
         <button class="rating-btn btn-hard" onclick="rate(1)">困難<span class="days">${nextIntervals[1]}天後</span></button>
         <button class="rating-btn btn-good" onclick="rate(2)">良好<span class="days">${nextIntervals[2]}天後</span></button>
         <button class="rating-btn btn-easy" onclick="rate(3)">簡單<span class="days">${nextIntervals[3]}天後</span></button>
       </div>
-      <p style="font-size:12px;color:#9CA3AF;margin-top:12px;">剩餘 ${reviewQueue.length} 張 · 今日已完成 ${doneToday} 張</p>
     </div>`;
 }
 
 function flipCard() {
   isFlipped = !isFlipped;
   document.getElementById('flip-card').classList.toggle('flipped', isFlipped);
-  if (isFlipped) document.getElementById('rating-row').style.display = 'grid';
+  if (isFlipped) document.getElementById('rating-fixed').style.display = 'block';
 }
 
 async function rate(quality) {
