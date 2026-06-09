@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="地政法條" />
+  <meta name="theme-color" content="#4F46E5" />
+  <title>地政法條記憶卡</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #3730A3;
+      --primary-light: #EEF2FF;
+      --success: #059669;
+      --success-light: #ECFDF5;
+      --warning: #D97706;
+      --warning-light: #FFFBEB;
+      --danger: #DC2626;
+      --danger-light: #FEF2F2;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-400: #9CA3AF;
+      --gray-600: #4B5563;
+      --gray-800: #1F2937;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.10);
+      --shadow-card: 0 8px 32px rgba(79,70,229,0.13);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .header-sub { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 8px;
+      border: none;
+      background: none;
+      color: var(--gray-400);
+      font-size: 11px;
+      gap: 3px;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn svg { width: 22px; height: 22px; }
+
+    /* ── Pages ── */
+    .page { display: none; padding: 16px 16px 88px; }
+    .page.active { display: block; }
+
+    /* ── Stats bar ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 14px 10px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-num { font-size: 26px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+
+    /* ── Review Card ── */
+    .review-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 8px;
+    }
+    .deck-badge {
+      font-size: 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 4px 14px;
+      border-radius: 99px;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+    .flip-card-wrap {
+      width: 100%;
+      perspective: 1000px;
+      margin-bottom: 20px;
+    }
+    .flip-card {
+      width: 100%;
+      min-height: 220px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(.4,0,.2,1);
+      cursor: pointer;
+    }
+    .flip-card.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute;
+      width: 100%;
+      min-height: 220px;
+      backface-visibility: hidden;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .card-face.back { transform: rotateY(180deg); background: var(--primary-light); }
+    .card-label { font-size: 11px; color: var(--gray-400); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+    .card-text { font-size: 18px; font-weight: 600; line-height: 1.6; color: var(--gray-800); white-space: pre-wrap; }
+    .card-face.back .card-text { font-size: 15px; font-weight: 400; color: var(--gray-800); }
+    .tap-hint { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
+
+    .rating-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .rating-btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .rating-btn:active { transform: scale(0.95); opacity: 0.85; }
+    .rating-btn .days { font-size: 10px; font-weight: 400; opacity: 0.75; }
+    .btn-again { background: var(--danger-light); color: var(--danger); }
+    .btn-hard  { background: var(--warning-light); color: var(--warning); }
+    .btn-good  { background: var(--success-light); color: var(--success); }
+    .btn-easy  { background: var(--primary-light); color: var(--primary); }
+
+    .no-cards {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-400);
+    }
+    .no-cards svg { width: 60px; height: 60px; margin-bottom: 16px; opacity: 0.4; }
+    .no-cards h3 { font-size: 18px; color: var(--gray-600); margin-bottom: 6px; }
+
+    /* ── Add Card ── */
+    .section-title { font-size: 15px; font-weight: 700; color: var(--gray-800); margin-bottom: 12px; }
+    .form-group { margin-bottom: 14px; }
+    label { font-size: 13px; color: var(--gray-600); margin-bottom: 5px; display: block; }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-family: inherit;
+      background: white;
+      color: var(--gray-800);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+    textarea { min-height: 100px; resize: vertical; line-height: 1.6; }
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+    .btn-primary:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+    .toast {
+      position: fixed;
+      bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--gray-800);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Card List ── */
+    .search-box { margin-bottom: 14px; }
+    .card-list-item {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card-list-content { flex: 1; min-width: 0; }
+    .card-list-front { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-list-back { font-size: 12px; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-list-deck { font-size: 11px; color: var(--primary); background: var(--primary-light); padding: 2px 8px; border-radius: 99px; margin-top: 4px; display: inline-block; }
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+    .btn-delete:active { color: var(--danger); }
+
+    /* ── Loading ── */
+    .loading { text-align: center; padding: 40px; color: var(--gray-400); }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--gray-400); font-size: 14px; }
+
+    /* ── Due badge ── */
+    .due-badge {
+      display: inline-block;
+      background: var(--danger);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 99px;
+      padding: 1px 7px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:18px;font-weight:700;">📚 地政法條記憶卡</div>
+    <div class="header-sub" id="header-sub">載入中...</div>
+  </div>
+  <div id="sync-icon" style="font-size:20px;">☁️</div>
+</div>
+
+<!-- Pages -->
+<div id="page-review" class="page active">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-due">-</div><div class="stat-label">今日待複習</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-total">-</div><div class="stat-label">總卡片數</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-done">-</div><div class="stat-label">今日已完成</div></div>
+  </div>
+  <div id="review-area"></div>
+</div>
+
+<div id="page-add" class="page">
+  <div class="section-title">新增法條卡片</div>
+  <div class="form-group">
+    <label>牌組（法規名稱）</label>
+    <input type="text" id="input-deck" placeholder="例：土地法、地籍測量實施規則" list="deck-list" />
+    <datalist id="deck-list"></datalist>
+  </div>
+  <div class="form-group">
+    <label>正面（問題／條號）</label>
+    <input type="text" id="input-front" placeholder="例：土地法第43條" />
+  </div>
+  <div class="form-group">
+    <label>背面（條文內容）</label>
+    <textarea id="input-back" placeholder="例：依本法所為之登記，有絕對效力。"></textarea>
+  </div>
+  <button class="btn-primary" id="btn-add">新增卡片</button>
+</div>
+
+<div id="page-list" class="page">
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="🔍 搜尋法條..." />
+  </div>
+  <div id="card-list-area"><div class="loading"><div class="spinner"></div>載入中...</div></div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-page="review" onclick="switchPage('review')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    複習
+  </button>
+  <button class="nav-btn" data-page="add" onclick="switchPage('add')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+    新增
+  </button>
+  <button class="nav-btn" data-page="list" onclick="switchPage('list')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+    卡片庫
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://zgqfouuhpfnsdcaatbnu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpncWZvdXVocGZuc2RjYWF0Ym51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODU3NTAsImV4cCI6MjA5NjU2MTc1MH0.tvUv_bHYvVH5MbBePrYrGqoPrfYSEDv7xEDCXKsQ1TY';
+
+const api = async (method, path, body) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+};
+
+// SM-2 Algorithm
+function sm2(card, quality) {
+  // quality: 0=Again, 1=Hard, 2=Good, 3=Easy
+  let { interval, ease_factor, repetitions } = card;
+  const q = [1, 2, 3, 5][quality]; // mapped scores
+
+  if (quality === 0) {
+    repetitions = 0;
+    interval = 1;
+  } else {
+    if (repetitions === 0) interval = 1;
+    else if (repetitions === 1) interval = 6;
+    else interval = Math.round(interval * ease_factor);
+    repetitions += 1;
+  }
+
+  ease_factor = Math.max(1.3, ease_factor + 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+
+  if (quality === 3) interval = Math.round(interval * 1.3);
+
+  const due = new Date();
+  due.setDate(due.getDate() + interval);
+
+  return {
+    interval,
+    ease_factor: Math.round(ease_factor * 100) / 100,
+    repetitions,
+    due_date: due.toISOString().split('T')[0]
+  };
+}
+
+// State
+let allCards = [];
+let reviewQueue = [];
+let currentCard = null;
+let doneToday = 0;
+let isFlipped = false;
+
+const today = () => new Date().toISOString().split('T')[0];
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`[data-page="${name}"]`).classList.add('active');
+  if (name === 'list') renderCardList();
+}
+
+// ── Load & Render ──
+async function loadCards() {
+  document.getElementById('sync-icon').textContent = '🔄';
+  try {
+    allCards = await api('GET', 'cards?select=*&order=created_at.desc', null);
+    reviewQueue = allCards.filter(c => c.due_date <= today());
+    updateStats();
+    renderReview();
+    document.getElementById('sync-icon').textContent = '☁️';
+    updateDeckList();
+  } catch(e) {
+    document.getElementById('sync-icon').textContent = '❌';
+    showToast('同步失敗，請檢查網路');
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-due').textContent = reviewQueue.length;
+  document.getElementById('stat-total').textContent = allCards.length;
+  document.getElementById('stat-done').textContent = doneToday;
+  document.getElementById('header-sub').textContent =
+    reviewQueue.length > 0 ? `今天還有 ${reviewQueue.length} 張需要複習` : '今日複習完成 🎉';
+}
+
+function renderReview() {
+  const area = document.getElementById('review-area');
+  if (reviewQueue.length === 0) {
+    area.innerHTML = `
+      <div class="no-cards">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <h3>今日複習完成！</h3>
+        <p style="font-size:14px;margin-top:4px;">總共完成 ${doneToday} 張卡片</p>
+        <p style="font-size:13px;color:#9CA3AF;margin-top:8px;">明天繼續加油 💪</p>
+      </div>`;
+    return;
+  }
+
+  currentCard = reviewQueue[0];
+  isFlipped = false;
+
+  const nextIntervals = [1, 
+    Math.max(1, Math.round(currentCard.interval * 1.2 * 0.8)),
+    Math.max(1, Math.round(currentCard.interval * currentCard.ease_factor)),
+    Math.max(1, Math.round(currentCard.interval * currentCard.ease_factor * 1.3))
+  ];
+
+  area.innerHTML = `
+    <div class="review-wrap">
+      <div class="deck-badge">${currentCard.deck}</div>
+      <div class="flip-card-wrap">
+        <div class="flip-card" id="flip-card" onclick="flipCard()">
+          <div class="card-face front">
+            <div class="card-label">正面</div>
+            <div class="card-text">${currentCard.front}</div>
+            <div class="tap-hint">點擊翻面 👆</div>
+          </div>
+          <div class="card-face back">
+            <div class="card-label">背面</div>
+            <div class="card-text">${currentCard.back}</div>
+          </div>
+        </div>
+      </div>
+      <div class="rating-row" id="rating-row" style="display:none">
+        <button class="rating-btn btn-again" onclick="rate(0)">重來<span class="days">${nextIntervals[0]}天後</span></button>
+        <button class="rating-btn btn-hard" onclick="rate(1)">困難<span class="days">${nextIntervals[1]}天後</span></button>
+        <button class="rating-btn btn-good" onclick="rate(2)">良好<span class="days">${nextIntervals[2]}天後</span></button>
+        <button class="rating-btn btn-easy" onclick="rate(3)">簡單<span class="days">${nextIntervals[3]}天後</span></button>
+      </div>
+      <p style="font-size:12px;color:#9CA3AF;margin-top:12px;">剩餘 ${reviewQueue.length} 張 · 今日已完成 ${doneToday} 張</p>
+    </div>`;
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('flip-card').classList.toggle('flipped', isFlipped);
+  if (isFlipped) document.getElementById('rating-row').style.display = 'grid';
+}
+
+async function rate(quality) {
+  if (!currentCard) return;
+  const updates = sm2(currentCard, quality);
+  try {
+    await api('PATCH', `cards?id=eq.${currentCard.id}`, updates);
+    doneToday++;
+    reviewQueue.shift();
+    // Update local
+    const idx = allCards.findIndex(c => c.id === currentCard.id);
+    if (idx > -1) allCards[idx] = { ...allCards[idx], ...updates };
+    if (quality === 0) reviewQueue.push({ ...allCards[idx] }); // put again at end
+    updateStats();
+    renderReview();
+  } catch(e) {
+    showToast('更新失敗，請重試');
+  }
+}
+
+// ── Add Card ──
+document.getElementById('btn-add').addEventListener('click', async () => {
+  const front = document.getElementById('input-front').value.trim();
+  const back = document.getElementById('input-back').value.trim();
+  const deck = document.getElementById('input-deck').value.trim() || '地政法規';
+  if (!front || !back) { showToast('請填寫正面和背面內容'); return; }
+
+  const btn = document.getElementById('btn-add');
+  btn.disabled = true; btn.textContent = '新增中...';
+
+  try {
+    const newCard = await api('POST', 'cards', { front, back, deck });
+    allCards.unshift(newCard[0]);
+    if (newCard[0].due_date <= today()) reviewQueue.push(newCard[0]);
+    updateStats();
+    updateDeckList();
+    document.getElementById('input-front').value = '';
+    document.getElementById('input-back').value = '';
+    showToast('✅ 卡片新增成功！');
+  } catch(e) {
+    showToast('新增失敗，請重試');
+  }
+  btn.disabled = false; btn.textContent = '新增卡片';
+});
+
+// ── Card List ──
+let searchTerm = '';
+document.getElementById('search-input').addEventListener('input', e => {
+  searchTerm = e.target.value.toLowerCase();
+  renderCardList();
+});
+
+function renderCardList() {
+  const area = document.getElementById('card-list-area');
+  let cards = allCards;
+  if (searchTerm) cards = cards.filter(c =>
+    c.front.toLowerCase().includes(searchTerm) ||
+    c.back.toLowerCase().includes(searchTerm) ||
+    c.deck.toLowerCase().includes(searchTerm)
+  );
+  if (cards.length === 0) {
+    area.innerHTML = `<div class="empty-state">${allCards.length === 0 ? '還沒有卡片，去新增吧！' : '找不到符合的卡片'}</div>`;
+    return;
+  }
+  area.innerHTML = cards.map(c => `
+    <div class="card-list-item">
+      <div class="card-list-content">
+        <div class="card-list-front">${c.front}</div>
+        <div class="card-list-back">${c.back}</div>
+        <div class="card-list-deck">${c.deck}</div>
+      </div>
+      <button class="btn-delete" onclick="deleteCard('${c.id}')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+async function deleteCard(id) {
+  if (!confirm('確定要刪除這張卡片？')) return;
+  try {
+    await api('DELETE', `cards?id=eq.${id}`, null);
+    allCards = allCards.filter(c => c.id !== id);
+    reviewQueue = reviewQueue.filter(c => c.id !== id);
+    updateStats();
+    renderCardList();
+    showToast('🗑️ 卡片已刪除');
+  } catch(e) {
+    showToast('刪除失敗');
+  }
+}
+
+function updateDeckList() {
+  const decks = [...new Set(allCards.map(c => c.deck))];
+  document.getElementById('deck-list').innerHTML = decks.map(d => `<option value="${d}">`).join('');
+}
+
+// ── Init ──
+loadCards();
+</script>
+</body>
+</html>
