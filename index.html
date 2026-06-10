@@ -236,21 +236,63 @@
 
     /* ── Card List ── */
     .search-box { margin-bottom: 14px; }
+
+    /* 分類群組 */
+    .deck-group { margin-bottom: 18px; }
+    .deck-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--primary);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .deck-group-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+    }
+    .deck-group-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .deck-count {
+      font-size: 12px;
+      background: rgba(255,255,255,0.25);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .deck-toggle {
+      color: white;
+      font-size: 16px;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+    .deck-toggle.collapsed { transform: rotate(-90deg); }
+    .deck-cards { }
+    .deck-cards.collapsed { display: none; }
+
     .card-list-item {
       background: white;
       border-radius: var(--radius-sm);
       padding: 14px 16px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
+      border-left: 3px solid var(--primary-light);
     }
     .card-list-content { flex: 1; min-width: 0; }
     .card-list-front { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-list-back { font-size: 12px; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-list-deck { font-size: 11px; color: var(--primary); background: var(--primary-light); padding: 2px 8px; border-radius: 99px; margin-top: 4px; display: inline-block; }
+    .card-due-badge { font-size: 11px; color: var(--danger); background: var(--danger-light); padding: 2px 7px; border-radius: 99px; margin-top: 4px; display: inline-block; }
     .btn-delete {
       background: none;
       border: none;
@@ -567,17 +609,53 @@ function renderCardList() {
     area.innerHTML = `<div class="empty-state">${allCards.length === 0 ? '還沒有卡片，去新增吧！' : '找不到符合的卡片'}</div>`;
     return;
   }
-  area.innerHTML = cards.map(c => `
-    <div class="card-list-item">
-      <div class="card-list-content">
-        <div class="card-list-front">${c.front}</div>
-        <div class="card-list-back">${c.back}</div>
-        <div class="card-list-deck">${c.deck}</div>
+
+  // 依牌組分組
+  const groups = {};
+  cards.forEach(c => {
+    if (!groups[c.deck]) groups[c.deck] = [];
+    groups[c.deck].push(c);
+  });
+
+  const todayStr = today();
+  area.innerHTML = Object.entries(groups).map(([deck, deckCards]) => {
+    const dueCount = deckCards.filter(c => c.due_date <= todayStr).length;
+    const dueBadge = dueCount > 0 ? `<span class="deck-count">${dueCount} 張待複習</span>` : '';
+    const cardItems = deckCards.map(c => {
+      const isDue = c.due_date <= todayStr;
+      return `
+      <div class="card-list-item">
+        <div class="card-list-content">
+          <div class="card-list-front">${c.front}</div>
+          <div class="card-list-back">${c.back}</div>
+          ${isDue ? '<span class="card-due-badge">今日待複習</span>' : ''}
+        </div>
+        <button class="btn-delete" onclick="deleteCard('${c.id}')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="deck-group">
+      <div class="deck-group-header" onclick="toggleDeck(this)">
+        <span class="deck-group-title">📂 ${deck}</span>
+        <div class="deck-group-meta">
+          ${dueBadge}
+          <span class="deck-count">${deckCards.length} 張</span>
+          <span class="deck-toggle">▾</span>
+        </div>
       </div>
-      <button class="btn-delete" onclick="deleteCard('${c.id}')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-      </button>
-    </div>`).join('');
+      <div class="deck-cards">${cardItems}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDeck(header) {
+  const toggle = header.querySelector('.deck-toggle');
+  const cards = header.nextElementSibling;
+  toggle.classList.toggle('collapsed');
+  cards.classList.toggle('collapsed');
 }
 
 async function deleteCard(id) {
