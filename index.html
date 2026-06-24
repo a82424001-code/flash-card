@@ -523,9 +523,10 @@ function renderReview() {
         <div class="card-text">${currentCard.front}</div>
         <span class="tap-hint">點擊翻面 👆</span>
       </div>
-      <div id="card-back" class="card-face back" style="display:none">
+      <div id="card-back" class="card-face back" style="display:none" onclick="flipCard()">
         <span class="card-label">背面</span>
         <div class="card-text">${currentCard.back}</div>
+        <span class="tap-hint">點擊翻回正面 👆</span>
       </div>
       <p style="font-size:12px;color:#9CA3AF;margin-top:14px;margin-bottom:80px;">剩餘 ${reviewQueue.length} 張 · 今日已完成 ${doneToday} 張</p>
     </div>
@@ -540,11 +541,10 @@ function renderReview() {
 }
 
 function flipCard() {
-  if (isFlipped) return;
-  isFlipped = true;
-  document.getElementById('card-front').style.display = 'none';
-  document.getElementById('card-back').style.display = 'block';
-  document.getElementById('rating-fixed').style.display = 'block';
+  isFlipped = !isFlipped;
+  document.getElementById('card-front').style.display = isFlipped ? 'none' : 'block';
+  document.getElementById('card-back').style.display = isFlipped ? 'block' : 'none';
+  document.getElementById('rating-fixed').style.display = isFlipped ? 'block' : 'none';
 }
 
 async function rate(quality) {
